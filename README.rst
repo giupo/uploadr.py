@@ -26,3 +26,23 @@ License
 
 Uploadr.py consists of code by Cameron Mallory, Martin Kleppmann, Aaron Swartz and
 others. See ``COPYRIGHT`` for details.
+
+
+Running Momchil's Version
+--------------------
+
+So I changed the code a bit to allow for collections and sets. Currently the script works like this:
+
+1. You open uploadr.py and change IMAGE_DIR to wherever all your precious photos are
+
+2. You run ``python uploadr.py``
+
+3. The script will crawl the folder and all subfolders and upload all the images to your Flickr account
+
+4. It will also order the images into sets and collections according to the directory structure, as follows:
+
+The image with relative path ``Path/To/Some/Album/image.jpg`` will go into a photo set with the name ``Album`` (i.e. the name of the parent directory of the image) which in turn will go into a collection with the name ``Path/To/Some`` (i.e. the relative path of the parent directory of the image). Ideally, once some day Flickr releases their collections API, we will be able to create a collection ``Path`` and inside a subcollection ``To`` and then a subsubcollection ``Some`` and then inside it a set ``Album`` and put the image there. For now though, I couldn't figure out how to do it, since the collections API is private.
+
+5. The script avoids duplicate uploads based on the relative path of the images. So in theory it is safe to interrupt it and run it again. Before it starts uploading anything, it scans all uploaded photos from your Flickr account and checks their relative paths (which it stores in the photo description -- please don't change that) to make sure it doesn't reupload them. Note that if you move stuff around in your photo directory or if you change the image, set, or collection descriptions in your Flickr account, the script may produce duplicate uploads.
+
+Also the code needs some cleaning up and I think I broke some of the originally available functionality, sorry about that. But it seems to work. Please feel free to suggest improvements, or just fork and work on it yourself!
