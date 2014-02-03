@@ -43,19 +43,24 @@ import sys
 import time
 import urllib2
 import webbrowser
+
 import xmltramp
 
-#
-##
-##  Items you will want to change
-##
+IMAGE_EXTS = ['jpeg', 'jpg', 'png', 'gif', 'bmp']
 
 #
-# Location to scan for new images
+#  Filename constants
 #
-IMAGE_DIR = "/Users/tomov90/Pictures/"
+PICTURES_DIRECTORY_MAC = 'Pictures'
+UPLOADED_IMAGES_FILENAME = "uploadr.history"
+FAILED_UPLOADS_FILENAME = "uploadr.failed"
+API_KEY_FILENAME = "uploadr.apiKey"
+API_SECRET_FILENAME = "uploadr.apiSecret"
+TOKEN_FILENAME = "uploadr.flickrToken"
+
+
 #
-#   Flickr settings
+#  Flickr API constants
 #
 FLICKR = {"title": "",
         "description": "",
@@ -63,27 +68,12 @@ FLICKR = {"title": "",
         "is_public": "0",
         "is_friend": "0",
         "is_family": "0" }
-#
-#   How often to check for new images to upload (in seconds)
-#
-SLEEP_TIME = 1 * 60
-#
-#   Only with --drip-feed option:
-#     How often to wait between uploading individual images (in seconds)
-#
-DRIP_TIME = 1 * 60
-#
-#   File we keep the history of uploaded images in.
-#
-HISTORY_FILE = os.path.join(IMAGE_DIR, "uploadr.history")
-
-##
-##  You shouldn't need to modify anything below here
-##
-FLICKR["api_key"] = os.environ['FLICKR_UPLOADR_PY_API_KEY']
-FLICKR["secret"] = os.environ['FLICKR_UPLOADR_PY_SECRET']
+FLICKR["api_key"] = None
+FLICKR["secret"] = None
 FLICKR["max_sets_per_page"] = 500
 FLICKR["max_photos_per_page"] = 500
+
+
 
 class APIConstants:
     """ APIConstants class
@@ -114,9 +104,16 @@ class Uploadr:
     """ Uploadr class
     """
 
+    # API 
     token = None
     perms = ""
-    TOKEN_FILE = os.path.join(IMAGE_DIR, ".flickrToken")
+
+    token_file = None
+    image_dir = None
+    api_key_file = None
+    api_secret_file = None
+
+    # Logs
     sets = dict()   # full path -> id
     collections = dict()  # full path -> id
 
@@ -132,12 +129,34 @@ class Uploadr:
     collection_fails = []
 
 
-    def __init__( self ):
-        """ Constructor
-        """
+    def __init__(self, args):
+        if args.dir:
+            self.image_dir = args.dir
+        else:
+            self.image_dir = os.path.join(os.path.expanduser('~'), PICTURES_DIRECTORY_MAC)
+
+        self.api_key_file = os.path.join(self.image_dir, API_KEY_FILENAME)
+        if args.api_key:
+            FLICKR[ api.key ] = args.api_key
+        else:
+            FLICKR[ api.key ] = self.getCachedAPIKey()
+        if not FLICKR[ api.key ]:
+            print "API key not found. Please specify your API key using the --api-key parameter."
+            sys.exit()
+
+        self.api_secret_file = os.path.join(self.image_dir, API_SECRET_FILENAME)
+        if args.api_secret:
+            FLICKR[ api.secret ] = args.api_secret
+        else:
+            FLICKR[ api.secret ] = self.getCachedAPISecret()
+        if not FLICKR[ api.secret ]:
+            print "API secret not found. Please specify your API secret using the --api-secret parameter."
+            sys.exit()
+
+        self.token_file = os.path.join(self.image_dir, TOKEN_FILENAME)
         self.token = self.getCachedToken()
-
-
+        if ( not self.checkToken() ):
+            self.authenticate()
 
     def signCall( self, data):
         """
@@ -149,7 +168,7 @@ class Uploadr:
         for a in keys:
             foo += (a + data[a])
 
-        f = FLICKR[ api.secret ] + api.key + FLICKR[ api.key ] + foo
+        f = str(FLICKR[ api.secret ]) + api.key + str(FLICKR[ api.key ]) + foo
         #f = api.key + FLICKR[ api.key ] + foo
         return hashlib.md5( f ).hexdigest()
 
@@ -159,7 +178,7 @@ class Uploadr:
         foo = base + "?"
         for d in data:
             foo += d + "=" + data[d] + "&"
-        return foo + api.key + "=" + FLICKR[ api.key ] + "&" + api.sig + "=" + sig
+        return foo + api.key + "=" + str(FLICKR[ api.key ]) + "&" + api.sig + "=" + sig
 
 
     def authenticate( self ):
@@ -171,6 +190,9 @@ class Uploadr:
         self.getAuthKey()
         self.getToken()
         self.cacheToken()
+        #self.cacheAPIKey() -- no need to save api key and secret, access token never expires
+        #self.cacheAPISecret()
+
 
     def getFrob( self ):
         """
@@ -193,12 +215,15 @@ class Uploadr:
         url = self.urlGen( api.rest, d, sig )
         try:
             response = self.getResponse( url )
-            if ( self.isGood( response ) ):
-                FLICKR[ api.frob ] = str(response.frob)
-            else:
-                self.reportError( response )
         except:
             print("Error getting frob:" + str( sys.exc_info() ))
+            sys.exit()
+
+        if ( self.isGood( response ) ):
+            FLICKR[ api.frob ] = str(response.frob)
+        else:
+            self.reportError( response )
+            sys.exit()
 
     def getAuthKey( self ):
         """
@@ -260,23 +285,39 @@ class Uploadr:
         except:
             print(str(sys.exc_info()))
 
-    def getCachedToken( self ):
-        """
-        Attempts to get the flickr token from disk.
-       """
-        if ( os.path.exists( self.TOKEN_FILE )):
-            return open( self.TOKEN_FILE ).read()
+    def getCachedAPIKey( self ):
+        if ( os.path.exists( self.api_key_file )):
+            return open( self.api_key_file ).read()
         else :
             return None
 
+    def cacheAPIKey( self ):
+        try:
+            open( self.api_key_file , "w").write( str(FLICKR[ api.key ]) )
+        except:
+            print("Issue writing API key to local cache ", str(sys.exc_info()))
 
+    def getCachedAPISecret( self ):
+        if ( os.path.exists( self.api_secret_file )):
+            return open( self.api_secret_file ).read()
+        else :
+            return None
+
+    def cacheAPISecret( self ):
+        try:
+            open( self.api_secret_file , "w").write( str(FLICKR[ api.secret ]) )
+        except:
+            print("Issue writing API secret to local cache ", str(sys.exc_info()))
+
+    def getCachedToken( self ):
+        if ( os.path.exists( self.token_file )):
+            return open( self.token_file ).read()
+        else :
+            return None
 
     def cacheToken( self ):
-        """ cacheToken
-        """
-
         try:
-            open( self.TOKEN_FILE , "w").write( str(self.token) )
+            open( self.token_file , "w").write( str(self.token) )
         except:
             print("Issue writing token to local cache ", str(sys.exc_info()))
 
@@ -352,8 +393,6 @@ class Uploadr:
         return self.sets[set_path]
 
     def crawl( self ):
-        if ( not self.checkToken() ):
-            self.authenticate()
 
         start_path = IMAGE_DIR
         foo = os.walk(start_path)
@@ -361,7 +400,7 @@ class Uploadr:
             (dirpath, dirnames, filenames) = data
             for f in filenames :
                 ext = f.lower().split(".")[-1]
-                if ( ext == "jpg" or ext == "gif" or ext == "png" or ext == "jpeg" ):
+                if ext in IMAGE_EXTS: 
                     fullpath = dirpath + "/" + f
                     relpath = fullpath[len(start_path):]
 
@@ -370,9 +409,6 @@ class Uploadr:
                         set_id = self.get_set(relpath, photo_id)
                         if set_id:
                             self.addImageToSet(photo_id, set_id)
-                    if args.drip_feed and success and i != len( newImages )-1:
-                        print("Waiting " + str(DRIP_TIME) + " seconds before next upload")
-                        time.sleep( DRIP_TIME )
 
         print 'FAILED IMAGES = ' + str(self.image_fails)
         print 'FAILED SETS = ' + str(self.set_fails)
@@ -483,8 +519,6 @@ class Uploadr:
             except:
                 print(str(sys.exc_info()))
 
-
-
     def createSet( self, name, image_id , description):
         set_id = None;
         print("Creating set " + name + " with image " + str(image_id) + ", desc = " + description)
@@ -543,7 +577,6 @@ class Uploadr:
             print(str(sys.exc_info()))
         return success
 
-    # unofficial api: http://stackoverflow.com/questions/2058025/adding-a-photo-collection-using-the-flickr-api
     def createCollection( self, name, description ):
         collection_id = None
         print("Creating collection " + name + " with desc = " + description)
@@ -573,7 +606,6 @@ class Uploadr:
             print(str(sys.exc_info()))
         return collection_id
 
-    # unofficial API..... FTW
     def addSetToCollection( self, set_id , collection_id ):
         success = False
         print("Adding set " + str(set_id) + " to collection " + str(collection_id) + "...")
@@ -602,7 +634,6 @@ class Uploadr:
         return success
 
     def uploadImage( self, image, relpath ):
-
         photoid = None
         if not relpath in self.uploaded_images:
             print("Uploading " + image + "...")
@@ -717,33 +748,20 @@ class Uploadr:
         return xmltramp.parse( xml )
 
 
-    def run( self ):
-        """ run
-        """
-
-        while ( True ):
-            self.upload()
-            print("Last check: " + str( time.asctime(time.localtime())))
-            time.sleep( SLEEP_TIME )
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Upload images to Flickr.')
-    parser.add_argument('-d', '--daemon', action='store_true',
-        help='Run forever as a daemon')
-    parser.add_argument('-i', '--title',       action='store',
-        help='Title for uploaded images')
-    parser.add_argument('-e', '--description', action='store',
-        help='Description for uploaded images')
-    parser.add_argument('-t', '--tags',        action='store',
-        help='Space-separated tags for uploaded images')
-    parser.add_argument('-r', '--drip-feed',   action='store_true',
-        help='Wait a bit between uploading individual images')
+    parser = argparse.ArgumentParser(description='Upload directories to Flickr.')
+    parser.add_argument('--dir', action='store', help='Directory with photos to upload')
+    parser.add_argument('--api_key', action='store', help="Your Flickr account API key")
+    parser.add_argument('--api_secret', action='store',  help="Your Flickr account API secret")
+    parser.add_argument('--dry-run', action='store_true', help="Include if you would just like to see the output but actually upload anything")
     args = parser.parse_args()
 
-    flick = Uploadr()
+    print args
 
-    flick.getSets()
-    flick.getCollections()
-    flick.getUploadedPhotos()
+    flick = Uploadr(args)
 
-    flick.crawl()
+    #flick.getSets()
+    #flick.getCollections()
+    #flick.getUploadedPhotos()
+
+    #flick.crawl()

@@ -1,0 +1,61 @@
+
+local cache of uploaded files (refresh from flickr if absent)
+local list of failed uploads
+local list of ignored files (append? like the original uploadr)
+
+say 'new upload session'
+say date/time + directory
+at the end, spit out count
+say 'end of upload session'
+
+
+console:
+Uploading [rel path to file]
+    in set [set name]
+    in collection [collection name]
+    ------> Success.
+
+Creating set [set name]
+    in collection [collection name]
+    ------> Success.
+
+Creating collection [collection name]
+    ------> Success.
+
+-----
+So far uploaded X files (Y ignored), created Z sets and W collections
+X files remaining to be examined
+Server has total X files, Z sets and W collections
+----
+
+Upload session paused. Press X to resume.
+
+...or...
+
+You pressed ESC. Are you sure you want to stop the uploading session? [y/N]
+
+
+
+
+take directory as input parameter
+
+display number of files & directories, precompute number of sets/collections/photos and the total size
+display number of files already uploaded and how many you will upload
+say in which files you can see them
+say which flickr profile you're uploading to and what exactly will happen
+ask are you sure? Y/n
+
+add --dry-run option
+
+add pause option (e.g. space button)
+say you can press space to pause
+
+add quit option (cmd+C)
+
+refactor/cleanup code
+
+unicode... reuploaded sacre-coeur cathedral because it didn't find it
+
+FOR YOUTUBE -- TOKEN REFRESH
+
+save the settings, make all arguments optional
