@@ -1,3 +1,4 @@
+# -*- coding: cp1252 -*-
 #!/usr/bin/env python
 
 """
@@ -49,18 +50,7 @@ import xmltramp
 IMAGE_EXTS = ['jpeg', 'jpg', 'png', 'gif', 'bmp']
 
 #
-#  Filename constants
-#
-PICTURES_DIRECTORY_MAC = 'Pictures'
-UPLOADED_IMAGES_FILENAME = "uploadr.history"
-FAILED_UPLOADS_FILENAME = "uploadr.failed"
-API_KEY_FILENAME = "uploadr.apiKey"
-API_SECRET_FILENAME = "uploadr.apiSecret"
-TOKEN_FILENAME = "uploadr.flickrToken"
-
-
-#
-#  Flickr API constants
+#   Flickr settings
 #
 FLICKR = {"title": "",
         "description": "",
@@ -68,11 +58,32 @@ FLICKR = {"title": "",
         "is_public": "0",
         "is_friend": "0",
         "is_family": "0" }
+
+#
+#  Filename constants
+#
+PICTURES_DIRECTORY_MAC = 'Pictures'
+
+UPLOADED_IMAGES_FILENAME = "uploadr.uploaded_images"
+CREATED_SETS_FILENAME = "uploadr.created_sets"
+CREATED_COLLECTIONS_FILENAME = "uploadr.created_collections"
+
+FAILED_UPLOADS_FILENAME = "failed_uploads.log"
+IGNORED_FILES_FILENAME = "ignored_files.log"
+
+API_KEY_FILENAME = ".uploadr.apiKey"
+API_SECRET_FILENAME = ".uploadr.apiSecret"
+TOKEN_FILENAME = ".uploadr.flickrToken"
+
+
+
+#
+#  Flickr API constants
+#
 FLICKR["api_key"] = None
 FLICKR["secret"] = None
 FLICKR["max_sets_per_page"] = 500
 FLICKR["max_photos_per_page"] = 500
-
 
 
 class APIConstants:
@@ -114,27 +125,35 @@ class Uploadr:
     api_secret_file = None
 
     # Logs
-    sets = dict()   # full path -> id
-    collections = dict()  # full path -> id
+    created_sets = None   # relative path -> id
+    created_collections = None  # relative path -> id
+    uploaded_images = None # relative path -> id
+
+    # TODO
+    new_sets = dict()   # full path -> id
+    new_collections = dict()  # full path -> id
 
     image_fails = []
     set_fails = []
     collection_fails = []
-    sets = dict()   # relative path -> id
-    collections = dict()  # relative path -> id
-    uploaded_images = dict() # relative path -> id
 
     image_fails = []
     set_fails = []
     collection_fails = []
 
+
+    """
+    ---     Initialization and Authentication
+    """
 
     def __init__(self, args):
+        # get image directory
         if args.dir:
             self.image_dir = args.dir
         else:
             self.image_dir = os.path.join(os.path.expanduser('~'), PICTURES_DIRECTORY_MAC)
 
+        # get api key
         self.api_key_file = os.path.join(self.image_dir, API_KEY_FILENAME)
         if args.api_key:
             FLICKR[ api.key ] = args.api_key
@@ -144,6 +163,7 @@ class Uploadr:
             print "API key not found. Please specify your API key using the --api-key parameter."
             sys.exit()
 
+        # get api secret
         self.api_secret_file = os.path.join(self.image_dir, API_SECRET_FILENAME)
         if args.api_secret:
             FLICKR[ api.secret ] = args.api_secret
@@ -153,6 +173,7 @@ class Uploadr:
             print "API secret not found. Please specify your API secret using the --api-secret parameter."
             sys.exit()
 
+        # get access token
         self.token_file = os.path.join(self.image_dir, TOKEN_FILENAME)
         self.token = self.getCachedToken()
         if ( not self.checkToken() ):
@@ -190,8 +211,8 @@ class Uploadr:
         self.getAuthKey()
         self.getToken()
         self.cacheToken()
-        #self.cacheAPIKey() -- no need to save api key and secret, access token never expires
-        #self.cacheAPISecret()
+        self.cacheAPIKey()
+        self.cacheAPISecret()
 
 
     def getFrob( self ):
@@ -358,7 +379,20 @@ class Uploadr:
                 print(str(sys.exc_info()))
             return False
 
-    # Crawlers
+
+    """
+    ---     Crawler
+    """
+
+    def getHistory( self ):
+        self.getCreatedSets()
+        self.getCreatedCollections()
+        self.getUploadedPhotos()
+
+    def closeHistoryFiles( self ):
+        self.created_sets.close()
+        self.created_collections.close()
+        self.uploaded_images.close()
 
     def get_set( self, fullpath, photo_id ):
         p = fullpath.split('/')
@@ -394,6 +428,8 @@ class Uploadr:
 
     def crawl( self ):
 
+
+
         start_path = IMAGE_DIR
         foo = os.walk(start_path)
         for data in foo:
@@ -414,21 +450,72 @@ class Uploadr:
         print 'FAILED SETS = ' + str(self.set_fails)
         print 'FAILED COLLECTIONS = ' + str(self.collection_fails)
 
-    # API calls
 
-    def getSets( self ):
-        print("Getting all photo sets...")
-        page = 1
-        while True:
+    """
+    ---     API calls
+    """
+
+
+    def getCreatedSets( self ):
+        self.created_sets_file = os.path.join(self.image_dir, CREATED_SETS_FILENAME)
+        self.created_sets = shelve.open(self.created_sets_file)
+        if len(self.created_sets) > 0:
+            print("\n\n---------- Loading list of already created sets from file " + self.created_sets_file + " ----------\n\n")
+        else:
+            print("\n\n---------- Getting list of already created sets from Flick account ----------\n\n")
+            page = 1
+            while True:
+                try:
+                    d = {
+                        api.token          : str(self.token),
+                        api.perms          : str(self.perms),
+                        "method"           : "flickr.photosets.getList",
+                        "per_page"         : str(FLICKR["max_sets_per_page"]),
+                        "page"             : str(page)
+                    }
+                    page = page + 1
+                    sig = self.signCall( d )
+                    d[ api.sig ] = sig
+                    d[ api.key ] = FLICKR[ api.key ]
+                    url = self.build_request(api.rest, d, ())
+                    xml = urllib2.urlopen( url ).read()
+                    res = xmltramp.parse(xml)
+                    if ( self.isGood( res ) ):
+                        if len(res[0]) == 0:
+                            break
+                        for nextset in res[0]:
+                            set_name = nextset[0][0]
+                            set_path = nextset[1][0]
+                            set_id = nextset('id')
+                            print '    Existing set ' + set_path + ' (id = ' + str(set_id) + ')'
+                            self.created_sets[set_path.encode("utf-16le")] = set_id
+                        success = True
+                    else :
+                        print("    Problem:")
+                        self.reportError( res )
+                        raise
+                except:
+                    print(str(sys.exc_info()))
+                    # cleanup
+                    self.created_sets.close()
+                    os.remove(self.created_sets_file + ".db")
+                    sys.exit()
+
+        print '\nLoaded ' + str(len(self.created_sets)) + ' sets!\n\n'
+
+    def getCreatedCollections( self ):
+        self.created_collections_file = os.path.join(self.image_dir, CREATED_COLLECTIONS_FILENAME)
+        self.created_collections = shelve.open(self.created_collections_file)
+        if len(self.created_collections) > 0:
+            print("\n\n---------- Loading list of already created collections from file " + self.created_collections_file + " ----------\n\n")
+        else:
+            print("\n\n---------- Getting list of already created collections from Flickr account ----------\n\n")
             try:
                 d = {
                     api.token          : str(self.token),
                     api.perms          : str(self.perms),
-                    "method"           : "flickr.photosets.getList",
-                    "per_page"         : str(FLICKR["max_sets_per_page"]),
-                    "page"             : str(page)
+                    "method"           : "flickr.collections.getTree",
                 }
-                page = page + 1
                 sig = self.signCall( d )
                 d[ api.sig ] = sig
                 d[ api.key ] = FLICKR[ api.key ]
@@ -436,88 +523,71 @@ class Uploadr:
                 xml = urllib2.urlopen( url ).read()
                 res = xmltramp.parse(xml)
                 if ( self.isGood( res ) ):
-                    print("Success page " + str(page))
-                    if len(res[0]) == 0:
-                        break
-                    for nextset in res[0]:
-                        set_name = nextset[0][0]
-                        set_path = nextset[1][0]
-                        set_id = nextset('id')
-                        print 'Existing set ' + set_path + ' ---> ' + str(set_id)
-                        self.sets[set_path] = set_id
-                    success = True
+                    for collection in res[0]:
+                        collection_name = collection('title')
+                        collection_path = collection('description')
+                        collection_id = collection('id')
+                        print '    Existing collection ' + collection_path + ' (id = ' + str(collection_id) + ')'
+                        self.created_collections[collection_path.encode("utf-16le")] = collection_id
                 else :
-                    print("Problem:")
+                    print("    Problem:")
                     self.reportError( res )
+                    raise
             except:
                 print(str(sys.exc_info()))
+                # cleanup
+                self.created_collections.close()
+                os.remove(self.created_collections_file + ".db")
+                sys.exit()
+        print '\nLoaded ' + str(len(self.created_collections)) + ' collections!\n\n'
 
-    def getCollections( self ):
-        print("Getting all photo collections...")
-        try:
-            d = {
-                api.token          : str(self.token),
-                api.perms          : str(self.perms),
-                "method"           : "flickr.collections.getTree",
-            }
-            sig = self.signCall( d )
-            d[ api.sig ] = sig
-            d[ api.key ] = FLICKR[ api.key ]
-            url = self.build_request(api.rest, d, ())
-            xml = urllib2.urlopen( url ).read()
-            res = xmltramp.parse(xml)
-            if ( self.isGood( res ) ):
-                print("Success.")
-                for collection in res[0]:
-                    collection_name = collection('title')
-                    collection_path = collection('description')
-                    collection_id = collection('id')
-                    print 'Existing collection ' + collection_path + ' ---> ' + str(collection_id)
-                    self.collections[collection_path] = collection_id
-                success = True
-            else :
-                print("Problem:")
-                self.reportError( res )
-        except:
-            print(str(sys.exc_info()))
 
     def getUploadedPhotos( self ):
-        print("Getting all uploaded photos...")
-        page = 1
-        while True:
-            try:
-                d = {
-                    api.token          : str(self.token),
-                    api.perms          : str(self.perms),
-                    "method"           : "flickr.people.getPhotos",
-                    "user_id"          : "me",
-                    "extras"           : "description",
-                    "per_page"         : str(FLICKR["max_photos_per_page"]),
-                    "page"             : str(page)
-                }
-                page = page + 1
-                sig = self.signCall( d )
-                d[ api.sig ] = sig
-                d[ api.key ] = FLICKR[ api.key ]
-                url = self.build_request(api.rest, d, ())
-                xml = urllib2.urlopen( url ).read()
-                res = xmltramp.parse(xml)
-                if ( self.isGood( res ) ):
-                    print("Success.")
-                    if len(res[0]) == 0:
-                        break
-                    for image in res[0]:
-                        image_name = image('title')
-                        image_path = image[0][0]
-                        image_id = image('id')
-                        print 'Uploaded image ' + image_path + ' ---> ' + str(image_id)
-                        self.uploaded_images[image_path] = image_id 
-                    success = True
-                else :
-                    print("Problem:")
-                    self.reportError( res )
-            except:
-                print(str(sys.exc_info()))
+        self.uploaded_images_file = os.path.join(self.image_dir, UPLOADED_IMAGES_FILENAME)
+        self.uploaded_images = shelve.open(self.uploaded_images_file)
+        if len(self.uploaded_images) > 0:
+            print("\n\n---------- Loading list of already uploaded photos from file " + self.uploaded_images_file + " ----------\n\n")
+        else:
+            print("\n\n---------- Getting list of already uploaded photos from Flickr account ----------\n\n")
+            page = 1
+            while True:
+                try:
+                    d = {
+                        api.token          : str(self.token),
+                        api.perms          : str(self.perms),
+                        "method"           : "flickr.people.getPhotos",
+                        "user_id"          : "me",
+                        "extras"           : "description",
+                        "per_page"         : str(FLICKR["max_photos_per_page"]),
+                        "page"             : str(page)
+                    }
+                    page = page + 1
+                    sig = self.signCall( d )
+                    d[ api.sig ] = sig
+                    d[ api.key ] = FLICKR[ api.key ]
+                    url = self.build_request(api.rest, d, ())
+                    xml = urllib2.urlopen( url ).read()
+                    res = xmltramp.parse(xml)
+                    if ( self.isGood( res ) ):
+                        if len(res[0]) == 0:
+                            break
+                        for image in res[0]:
+                            image_name = image('title')
+                            image_path = image[0][0]
+                            image_id = image('id')
+                            print '    Uploaded image ' + image_path + ' (id = ' + str(image_id) + ')'
+                            self.uploaded_images[image_path.encode("utf-16le")] = image_id 
+                    else :
+                        print("    Problem:")
+                        self.reportError( res )
+                        raise
+                except:
+                    print(str(sys.exc_info()))
+                    # cleanup
+                    self.uploaded_images.close()
+                    os.remove(self.uploaded_images_file + ".db")
+                    sys.exit()
+        print '\nLoaded ' + str(len(self.uploaded_images)) + ' uploaded images!\n\n'            
 
     def createSet( self, name, image_id , description):
         set_id = None;
@@ -760,8 +830,7 @@ if __name__ == "__main__":
 
     flick = Uploadr(args)
 
-    #flick.getSets()
-    #flick.getCollections()
-    #flick.getUploadedPhotos()
+    flick.getHistory()
 
     #flick.crawl()
+    flick.closeHistoryFiles()
