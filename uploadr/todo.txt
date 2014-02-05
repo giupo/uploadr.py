@@ -45,7 +45,7 @@ say in which files you can see them
 say which flickr profile you're uploading to and what exactly will happen
 ask are you sure? Y/n
 
-add --dry-run option
+add --dry-run option -- CANCELED
 
 add pause option (e.g. space button)
 say you can press space to pause
@@ -54,8 +54,8 @@ add quit option (cmd+C)
 
 refactor/cleanup code
 
-unicode... reuploaded sacre-coeur cathedral because it didn't find it
+unicode... reuploaded sacre-coeur cathedral because it didn't find it -- DONE
 
 FOR YOUTUBE -- TOKEN REFRESH
 
-save the settings, make all arguments optional
+save the settings, make all arguments optional -- DONE
