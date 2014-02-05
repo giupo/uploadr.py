@@ -59,6 +59,3 @@ unicode... reuploaded sacre-coeur cathedral because it didn't find it
 FOR YOUTUBE -- TOKEN REFRESH
 
 save the settings, make all arguments optional
-
-
-paging for collections?? make sure it does load all of them...

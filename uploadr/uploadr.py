@@ -1,4 +1,4 @@
-# -*- coding: cp1252 -*-
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python
 
 """
@@ -44,10 +44,13 @@ import sys
 import time
 import urllib2
 import webbrowser
+import random
 
 import xmltramp
 
 IMAGE_EXTS = ['jpeg', 'jpg', 'png', 'gif', 'bmp']
+
+IS_DRY_RUN = False
 
 #
 #   Flickr settings
@@ -68,13 +71,12 @@ UPLOADED_IMAGES_FILENAME = "uploadr.uploaded_images"
 CREATED_SETS_FILENAME = "uploadr.created_sets"
 CREATED_COLLECTIONS_FILENAME = "uploadr.created_collections"
 
-FAILED_UPLOADS_FILENAME = "failed_uploads.log"
-IGNORED_FILES_FILENAME = "ignored_files.log"
+FAILED_UPLOADS_FILENAME = "uploadr.failed_uploads.log"
+IGNORED_FILES_FILENAME = "uploadr.ignored_files.log"
 
 API_KEY_FILENAME = ".uploadr.apiKey"
 API_SECRET_FILENAME = ".uploadr.apiSecret"
 TOKEN_FILENAME = ".uploadr.flickrToken"
-
 
 
 #
@@ -111,6 +113,17 @@ class APIConstants:
 
 api = APIConstants()
 
+""" Helpers
+"""
+
+def str2key( ss ):
+    if not isinstance(ss, unicode):
+        s = ss.decode('utf-8')
+    else:
+        s = ss
+    return s.encode("utf-8")
+
+
 class Uploadr:
     """ Uploadr class
     """
@@ -125,25 +138,30 @@ class Uploadr:
     api_secret_file = None
 
     # Logs
-    created_sets = None   # relative path -> id
-    created_collections = None  # relative path -> id
-    uploaded_images = None # relative path -> id
+    created_sets = None   # shelve dict, relative path -> id
+    created_collections = None  # shelve dict, relative path -> id
+    uploaded_images = None # shelve dict, relative path -> id
+    failed_uploads = None # text log
+    ignored_files = None # text log
+    dry_created_sets = dict() # for --dry-run
+    dry_created_collections = dict() # for --dry-run
 
-    # TODO
-    new_sets = dict()   # full path -> id
-    new_collections = dict()  # full path -> id
+    # Stats
+    new_sets_count = 0
+    new_collections_count = 0
+    new_images_count = 0
+    failed_sets_count = 0
+    failed_collections_count = 0
+    failed_images_count = 0
+    skipped_sets_count = 0
+    skipped_collections_count = 0
+    skipped_images_count = 0
+    ignored_files_count = 0
+    total_files = 0
+    total_dirs = 0
 
-    image_fails = []
-    set_fails = []
-    collection_fails = []
 
-    image_fails = []
-    set_fails = []
-    collection_fails = []
-
-
-    """
-    ---     Initialization and Authentication
+    """     Initialization and Authentication
     """
 
     def __init__(self, args):
@@ -152,6 +170,8 @@ class Uploadr:
             self.image_dir = args.dir
         else:
             self.image_dir = os.path.join(os.path.expanduser('~'), PICTURES_DIRECTORY_MAC)
+        if self.image_dir[-1] != '/':
+            self.image_dir += '/'
 
         # get api key
         self.api_key_file = os.path.join(self.image_dir, API_KEY_FILENAME)
@@ -380,26 +400,29 @@ class Uploadr:
             return False
 
 
-    """
-    ---     Crawler
+    """     Crawler
     """
 
     def getHistory( self ):
         self.getCreatedSets()
         self.getCreatedCollections()
         self.getUploadedPhotos()
+        self.failed_uploads = open(os.path.join(self.image_dir, FAILED_UPLOADS_FILENAME), 'a')
+        self.ignored_files = open(os.path.join(self.image_dir, IGNORED_FILES_FILENAME), 'a')
 
     def closeHistoryFiles( self ):
         self.created_sets.close()
         self.created_collections.close()
         self.uploaded_images.close()
+        self.failed_uploads.close()
+        self.ignored_files.close()
 
-    def get_set( self, fullpath, photo_id ):
-        p = fullpath.split('/')
+    def getSetId( self, relpath, photo_id ):
+        p = relpath.split('/')
         set_path = '/'.join(p[:-1])
-        if not set_path in self.sets:
+        if not str2key(set_path) in self.created_sets and not str2key(set_path) in self.dry_created_sets:
             if len(p) == 1:
-                self.sets[set_path] = None
+                self.created_sets[str2key(set_path)] = None
             else:
                 set_name = p[-2]
                 if len(p) == 2:
@@ -409,52 +432,60 @@ class Uploadr:
                     collection_path = '/'.join(p[:-2])
                     collection_name = collection_path
 
-                # create set
+                # create set, optionally
                 set_id = self.createSet(set_name, photo_id, set_path)
-                self.sets[set_path] = set_id 
 
                 # optionally add it to collection
                 if collection_name:
-                    # create collection
-                    if not collection_path in self.collections:
-                        self.collections[collection_path] = self.createCollection(collection_name, collection_path)
-                    collection_id = self.collections[collection_path]
+                    # create collection, optionally
+                    collection_id = self.createCollection(collection_name, collection_path)
                     self.addSetToCollection(set_id, collection_id)
 
-            #print 'Set ' + str(set_name)
-            #print '    Path ' + set_path
-            #print '           Collection ' + str(collection_path)
-        return self.sets[set_path]
+        if IS_DRY_RUN:
+            if str2key(set_path) in self.created_sets:
+                return self.created_sets[str2key(set_path)]
+            return self.dry_created_sets[str2key(set_path)]
+        return self.created_sets[str2key(set_path)]
 
     def crawl( self ):
-
-
-
-        start_path = IMAGE_DIR
-        foo = os.walk(start_path)
+        foo = os.walk(self.image_dir)
         for data in foo:
             (dirpath, dirnames, filenames) = data
+            self.total_dirs += 1
             for f in filenames :
+                self.total_files += 1
+                fullpath = os.path.join(dirpath, f)
+                relpath = fullpath[len(self.image_dir):]                
                 ext = f.lower().split(".")[-1]
-                if ext in IMAGE_EXTS: 
-                    fullpath = dirpath + "/" + f
-                    relpath = fullpath[len(start_path):]
-
+                if ext in IMAGE_EXTS:
                     photo_id = self.uploadImage( fullpath, relpath )
                     if photo_id:
-                        set_id = self.get_set(relpath, photo_id)
+                        set_id = self.getSetId(relpath, photo_id)
                         if set_id:
                             self.addImageToSet(photo_id, set_id)
+                else:
+                    print 'Ignored file ' + relpath
+                    self.ignored_files.write(fullpath + '\n')
+                    self.ignored_files_count += 1
+                sys.stdout.flush()
 
-        print 'FAILED IMAGES = ' + str(self.image_fails)
-        print 'FAILED SETS = ' + str(self.set_fails)
-        print 'FAILED COLLECTIONS = ' + str(self.collection_fails)
+    def printStats( self ):
+        print "Crawling finished!"
+        print "Examined " + str(self.total_files) + " files and " + str(self.total_dirs) + " directories"
+        print "Uploaded " + str(self.new_images_count) + " images (" \
+            + str(self.skipped_images_count) + " images were already uploaded, " \
+            + str(self.failed_images_count) + " uploads failed, " \
+            + str(self.ignored_files_count) + " files were ignored)" 
+        print "Created " + str(self.new_sets_count) + " sets (" \
+            + str(self.skipped_sets_count) + " sets were already created, " \
+            + str(self.failed_sets_count) + " sets failed)"
+        print "Created " + str(self.new_collections_count) + " collections (" \
+            + str(self.skipped_collections_count) + " collections were already created, " \
+            + str(self.failed_collections_count) + " collections failed)"
 
 
+    """     API calls
     """
-    ---     API calls
-    """
-
 
     def getCreatedSets( self ):
         self.created_sets_file = os.path.join(self.image_dir, CREATED_SETS_FILENAME)
@@ -488,7 +519,7 @@ class Uploadr:
                             set_path = nextset[1][0]
                             set_id = nextset('id')
                             print '    Existing set ' + set_path + ' (id = ' + str(set_id) + ')'
-                            self.created_sets[set_path.encode("utf-16le")] = set_id
+                            self.created_sets[str2key(set_path)] = set_id
                         success = True
                     else :
                         print("    Problem:")
@@ -525,10 +556,10 @@ class Uploadr:
                 if ( self.isGood( res ) ):
                     for collection in res[0]:
                         collection_name = collection('title')
-                        collection_path = collection('description')
+                        collection_path = unicode(collection('description'))
                         collection_id = collection('id')
                         print '    Existing collection ' + collection_path + ' (id = ' + str(collection_id) + ')'
-                        self.created_collections[collection_path.encode("utf-16le")] = collection_id
+                        self.created_collections[str2key(collection_path)] = collection_id
                 else :
                     print("    Problem:")
                     self.reportError( res )
@@ -575,8 +606,8 @@ class Uploadr:
                             image_name = image('title')
                             image_path = image[0][0]
                             image_id = image('id')
-                            print '    Uploaded image ' + image_path + ' (id = ' + str(image_id) + ')'
-                            self.uploaded_images[image_path.encode("utf-16le")] = image_id 
+                            print '    Existing image ' + image_path + ' (id = ' + str(image_id) + ')'
+                            self.uploaded_images[str2key(image_path)] = image_id 
                     else :
                         print("    Problem:")
                         self.reportError( res )
@@ -589,40 +620,63 @@ class Uploadr:
                     sys.exit()
         print '\nLoaded ' + str(len(self.uploaded_images)) + ' uploaded images!\n\n'            
 
-    def createSet( self, name, image_id , description):
+    def createSet( self, name, image_id , relpath):
+        if IS_DRY_RUN:
+            if str2key(relpath) not in self.dry_created_sets:
+                if not str2key(relpath) in self.created_sets:
+                    print("Creating set " + name + " for directory " + relpath)
+                    self.dry_created_sets[str2key(relpath)] = random.randint(10, 1000000000000000)
+                    self.new_sets_count += 1 
+                    print("    Success. Set id = " + str(self.dry_created_sets[str2key(relpath)]))
+                else:
+                    self.dry_created_sets[str2key(relpath)] = self.created_sets[str2key(relpath)]
+                    self.skipped_sets_count += 1
+            return self.dry_created_sets[str2key(relpath)]
+
         set_id = None;
-        print("Creating set " + name + " with image " + str(image_id) + ", desc = " + description)
-        try:
-            d = {
-                api.token          : str(self.token),
-                api.perms          : str(self.perms),
-                "method"           : "flickr.photosets.create",
-                "title"            : name,
-                "description"      : description, 
-                "primary_photo_id" : str(image_id)
-            }
-            sig = self.signCall( d )
-            d[ api.sig ] = sig
-            d[ api.key ] = FLICKR[ api.key ]
-            url = self.build_request(api.rest, d, ())
-            xml = urllib2.urlopen( url ).read()
-            res = xmltramp.parse(xml)
-            if ( self.isGood( res ) ):
-                print("Success.")
-                set_id = res[0]('id')
-                success = True
-            else :
-                print("Problem:")
-                self.reportError( res )
-                self.set_fails.append(description)
-        except:
-            print(str(sys.exc_info()))
+        if not str2key(relpath) in self.created_sets:
+            print("Creating set " + name + " for directory " + relpath)
+            try:
+                d = {
+                    api.token          : str(self.token),
+                    api.perms          : str(self.perms),
+                    "method"           : "flickr.photosets.create",
+                    "title"            : name,
+                    "description"      : relpath, 
+                    "primary_photo_id" : str(image_id)
+                }
+                sig = self.signCall( d )
+                d[ api.sig ] = sig
+                d[ api.key ] = FLICKR[ api.key ]
+                url = self.build_request(api.rest, d, ())
+                xml = urllib2.urlopen( url ).read()
+                res = xmltramp.parse(xml)
+                if ( self.isGood( res ) ):
+                    set_id = res[0]('id')
+                    self.created_sets[str2key(relpath)] = set_id
+                    print("    Success. Set id = " + str(set_id))
+                    self.new_sets_count += 1
+                else :
+                    print("    Problem:")
+                    self.reportError( res )
+                    self.failed_uploads.write('Set: ' + relpath + '\n')
+                    self.failed_sets_count += 1
+            except:
+                print(str(sys.exc_info()))
+                self.failed_uploads.write('Set: ' + relpath + '\n')
+                self.failed_sets_count += 1
+        else:
+            set_id = self.created_sets[str2key(relpath)]
+            self.skipped_sets_count += 1
         return set_id
 
 
     def addImageToSet( self, image_id, set_id ):
         success = False
-        print("Adding image " + str(image_id) + " to set " + str(set_id) + "...")
+        print("Adding image with id " + str(image_id) + " to set with id " + str(set_id) + "...")
+        if IS_DRY_RUN:
+            print("    Success.")
+            return True
         try:
             d = {
                 api.token     : str(self.token),
@@ -638,47 +692,69 @@ class Uploadr:
             xml = urllib2.urlopen( url ).read()
             res = xmltramp.parse(xml)
             if ( self.isGood( res ) ):
-                print("Success.")
+                print("    Success.")
                 success = True
             else :
-                print("Problem:")
+                print("    Problem:")
                 self.reportError( res )
         except:
             print(str(sys.exc_info()))
         return success
 
-    def createCollection( self, name, description ):
+    def createCollection( self, name, relpath ):
+        if IS_DRY_RUN:
+            if str2key(relpath) not in self.dry_created_collections:
+                if not str2key(relpath) in self.created_collections:
+                    print("Creating collection " + name + " for directory " + relpath)
+                    self.dry_created_collections[str2key(relpath)] = random.randint(10, 1000000000000000)
+                    self.new_collections_count += 1 
+                    print("    Success. Collection id = " + str(self.dry_created_collections[str2key(relpath)]))
+                else:
+                   self.dry_created_collections[str2key(relpath)] = self.created_collections[str2key(relpath)]
+                   self.skipped_collections_count += 1
+            return self.dry_created_collections[str2key(relpath)]
         collection_id = None
-        print("Creating collection " + name + " with desc = " + description)
-        try:
-            d = {
-                api.token          : str(self.token),
-                api.perms          : str(self.perms),
-                "method"           : "flickr.collections.create",
-                "title"            : name,
-                "description"      : description
-            }
-            sig = self.signCall( d )
-            d[ api.sig ] = sig
-            d[ api.key ] = FLICKR[ api.key ]
-            url = self.build_request(api.rest, d, ())
-            xml = urllib2.urlopen( url ).read()
-            res = xmltramp.parse(xml)
-            if ( self.isGood( res ) ):
-                print("Success.")
-                collection_id = res[0]('id')
-                success = True
-            else :
-                print("Problem:")
-                self.collection_fails.append(description)
-                self.reportError( res )
-        except:
-            print(str(sys.exc_info()))
+        if not str2key(relpath) in self.created_collections:
+            print("Creating collection " + name + " for directory " + relpath)
+            try:
+                d = {
+                    api.token          : str(self.token),
+                    api.perms          : str(self.perms),
+                    "method"           : "flickr.collections.create",
+                    "title"            : name,
+                    "description"      : relpath
+                }
+                sig = self.signCall( d )
+                d[ api.sig ] = sig
+                d[ api.key ] = FLICKR[ api.key ]
+                url = self.build_request(api.rest, d, ())
+                xml = urllib2.urlopen( url ).read()
+                res = xmltramp.parse(xml)
+                if ( self.isGood( res ) ):
+                    collection_id = res[0]('id')
+                    self.created_collections[str2key(relpath)] = collection_id
+                    print("    Success. Collection id = " + str(collection_id))
+                    self.new_collections_count += 1
+                else :
+                    print("    Problem:")
+                    self.failed_uploads.write("Collection: " + relpath + "\n")
+                    self.reportError( res )
+                    self.failed_collections_count += 1
+            except:
+                print(str(sys.exc_info()))
+                self.failed_uploads.write("Collection: " + relpath + "\n")
+                self.failed_collections_count += 1
+        else:
+            collection_id = self.created_collections[str2key(relpath)]
+            self.skipped_collections_count += 1
         return collection_id
 
     def addSetToCollection( self, set_id , collection_id ):
         success = False
-        print("Adding set " + str(set_id) + " to collection " + str(collection_id) + "...")
+        print("Adding set with id " + str(set_id) + " to collection with id " + str(collection_id) + "...")
+        if IS_DRY_RUN:
+            print("    Success.")
+            return True
         try:
             d = {
                 api.token       : str(self.token),
@@ -694,19 +770,26 @@ class Uploadr:
             xml = urllib2.urlopen( url ).read()
             res = xmltramp.parse(xml)
             if ( self.isGood( res ) ):
-                print("Success.")
+                print("    Success.")
                 success = True
             else :
-                print("Problem:")
+                print("    Problem:")
                 self.reportError( res )
         except:
             print(str(sys.exc_info()))
         return success
 
     def uploadImage( self, image, relpath ):
+        if IS_DRY_RUN:
+            print "Uploading image " + image + "..."
+            photoid = random.randint(10, 10000000000000);
+            self.new_images_count += 1
+            print("    Success. Image id = " + str(photoid))
+            return str(photoid)
+
         photoid = None
-        if not relpath in self.uploaded_images:
-            print("Uploading " + image + "...")
+        if not str2key(relpath) in self.uploaded_images:
+            print "Uploading image " + image + "..."
             try:
                 photo = ('photo', image, open(image,'rb').read())
                 if args.title: # Replace
@@ -732,14 +815,23 @@ class Uploadr:
                 xml = urllib2.urlopen( url ).read()
                 res = xmltramp.parse(xml)
                 if ( self.isGood( res ) ):
-                    print("Success.")
                     photoid = res.photoid
+                    self.uploaded_images[str2key(relpath)] = photoid
+                    print("    Success. Image id = " + str(photoid))
+                    self.new_images_count += 1
                 else :
-                    print("Problem:")
+                    print("    Problem:")
                     self.reportError( res )
-                    self.image_fails.append(image)
+                    self.failed_uploads.write('Image: ' + image + '\n')
+                    self.failed_images_count += 1
             except:
                 print(str(sys.exc_info()))
+                self.failed_uploads.write('Image: ' + image + '\n')
+                self.failed_images_count += 1
+        else:
+            photoid = self.uploaded_images[str2key(relpath)]
+            print "Skipping image " + image + ": already uploaded with id = " + str(photoid)
+            self.skipped_images_count += 1
         return photoid 
 
     def build_request(self, theurl, fields, files, txheaders=None):
@@ -825,12 +917,12 @@ if __name__ == "__main__":
     parser.add_argument('--api_secret', action='store',  help="Your Flickr account API secret")
     parser.add_argument('--dry-run', action='store_true', help="Include if you would just like to see the output but actually upload anything")
     args = parser.parse_args()
-
-    print args
+    if args.dry_run:
+        IS_DRY_RUN = True
+        print 'DRY RUN!'
 
     flick = Uploadr(args)
-
     flick.getHistory()
-
-    #flick.crawl()
+    flick.crawl()
+    flick.printStats()
     flick.closeHistoryFiles()
