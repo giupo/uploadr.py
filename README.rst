@@ -44,14 +44,59 @@ Here is how this would look for an example directory and api key and secret::
 
 	python uploadr.py --dir="/Users/tomov90/Downloads/My Photos/" --api-key=00954e229265b619362cb462da234100 --api-secret=4cf2baa933309b8e
 
-You will be forwarded to a Flickr confirmation page in your browser. Click ``OK, I'LL AUTHORIZE I`` at the bottom, go back to the terminal and type ``Y``
+You will be forwarded to a Flickr confirmation page in your browser. Click ``OK, I'LL AUTHORIZE I`` at the bottom, go back to the terminal and type ``Y``. You will get another prompt asking you if you are sure you want to continue. Type ``Y`` again and let python do the rest of the work!
 
-When you have got those keys, you need to set environment variables so that they
-can be used by this application. For example, if you use Bash, add the following
-lines to your ``$HOME/.bash_profile``::
+Step 3. Re-running the script
 
-    export FLICKR_UPLOADR_PY_API_KEY=0123456789abcdef0123456789abcdef
-    export FLICKR_UPLOADR_PY_SECRET=0123456789abcdef
+To back up the same folder to the same Flickr account, simply run::
+
+	python uploadr.py --dir=[photos directory]
+
+And the upload should start immediately. You won't have to re-enter you API key and secret since the app saves them in the photo directory. The app also saves a history of all previously uploaded photos and unless you move stuff around or rename your files or directories, it will avoid uploading duplicate photos or creating duplicate sets and collections.
+
+
+Advanced
+===================
+
+Script
+-------------------
+
+
+TODO
+
+
+Files
+-------------------
+
+You will notice that the script will create a bunch of files with the prefix ```uploadr.*`  in your photos directory. Some of them will be hidden, namely::
+
+	.uploadr.flickrToken
+	.uploadr.apiKey
+	.uploadr.apiSecret
+
+Those contain your Flickr account access information so you don't have to enter it every time. However, this also means that anyone who has access to those files can access your precious photos, so make sure to avoid sending them to random people. If you ever delete them, you will have to pass the API key and secret as command-line parameters as discussed in Step 2.
+
+In addition, the script saves a history of all uploaded photos, sets, and collections in these files::
+
+	uploadr.uploaded_images.db
+	uploadr.created_sets.db
+	uploadr.created_collections.db
+
+This helps the script avoid duplicate uploads. If you delete them, the script will still avoid duplicate uploads by first fetching a list of all images, sets, and collections from the Flickr account. In fact, if for some reason you upload photos to the same account from different directories, it might make sense to delete those files and let the script "refresh" them with the latest data in the Flickr account.
+
+Finally, the script creates a log of failed uploads and ignored files::
+
+	uploadr.failed_uploads.log
+	uploadr.ignored_files.log
+
+This is for debugging purposes and to make sure none of your important files were ignored or failed to upload for some reason.
+
+
+What it does
+-----------------
+
+
+
 
 
 License

@@ -449,7 +449,7 @@ class Uploadr:
     def prompt(self):
         print "\n---------------------------------------------------------------------------\n"
         print "    This script will examine all files and directories in: " + self.image_dir + ""
-        print "    and upload them into Flickr account: " + self.username + " (" + self.realname + ")"
+        print "    and upload them to Flickr account: " + self.username + " (" + self.realname + ")"
         print "\n---------------------------------------------------------------------------\n"
         return query_yes_no("Are you sure you want to continue?")
 
@@ -993,7 +993,7 @@ if __name__ == "__main__":
     if flick.prompt():
         print '\n' + flick.session_info
         flick.getHistory()
-        #flick.crawl()
+        flick.crawl()
         flick.printStats()
         flick.closeHistoryFiles()
     else:
