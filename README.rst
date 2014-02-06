@@ -20,12 +20,29 @@ Mac OS X 10.8 comes with Python preinstalled. To verfiy that, open a terminal an
 
 2. Git
 
-To see if you have Git installed, open a terminal and type ‘git --version’. If you don’t, get the latest version from `here <https://code.google.com/p/git-osx-installer/downloads/list>`_.
+To see if you have Git installed, open a terminal and type ``git --version``. If you don’t have it, you can get the latest version from `here <https://code.google.com/p/git-osx-installer/downloads/list>`_.
+
+Step 1. Download the script
+---------------
+
+Go to your favorite hacking directory and clone the repo:
+
+	git clone https://github.com/tomov/uploadr.py
+
+	cd uploadr.py/uploadr
+	
+Step 2. Run the script
+---------------
+
+Make sure to have your Flickr API key and secret (if you don't, you can get them `here <http://www.flickr.com/services/api/keys/apply/>`_). Then run the script:
+
+	python uploadr.py --dir=[phots directory] --api-key=[your api key] --api-secret=[your api secret]
+
+Here is how this would look for an example directory and api key and secret:
+
+	python uploadr.py --dir="/Users/tomov90/Downloads/My Photos/" --api-key=00954e229265b619362cb462da234100 --api-secret=4cf2baa933309b8e
 
 
-To use this application, you need to obtain your own Flickr API key and secret
-key. You can apply for keys `on the Flickr website
-<http://www.flickr.com/services/api/keys/apply/>`_.
 
 When you have got those keys, you need to set environment variables so that they
 can be used by this application. For example, if you use Bash, add the following
