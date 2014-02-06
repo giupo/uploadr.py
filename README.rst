@@ -4,6 +4,15 @@ Uploadr.py
 Uploadr.py is a simple Python script for uploading your photos to Flickr. It also arranges them into 
 sets and collections that correspond to the directory structure of your photos directory.
 
+The script is superior to other Flickr uploaders in several important ways.
+
+1. It preserves the layout of your photos directory by organizing the uploads into sets and collections, 
+instead of just putting everything into one giant photo stream.
+
+2. It can be safely interrupted and restarted and it will avoid making duplicate uploads.
+
+3. It can be automated to regularly back up your photos directory.
+
 
 Instructions
 ==========
@@ -40,35 +49,45 @@ Make sure to have your Flickr API key and secret (if you don't, you can get them
 
 	python uploadr.py --dir=[photos directory] --api-key=[your api key] --api-secret=[your api secret]
 
-Here is how this would look for an example directory and api key and secret::
+Here is what this would look like for an example directory and api key and secret::
 
 	python uploadr.py --dir="/Users/tomov90/Downloads/My Photos/" --api-key=00954e229265b619362cb462da234100 --api-secret=4cf2baa933309b8e
 
 You will be forwarded to a Flickr confirmation page in your browser. Click ``OK, I'LL AUTHORIZE I`` at the bottom, go back to the terminal and type ``Y``. You will get another prompt asking you if you are sure you want to continue. Type ``Y`` again and let python do the rest of the work!
 
-Step 3. Re-running the script
+
+Step 3. Check everything is fine
+-------------------
+
+Once the script has finished, go to your Flickr account photo stream and make sure everything is there. Check the photo count at the top of the photo stream and make sure it looks right. I also recommend checking the sets and collections in the `organizer <http://www.flickr.com/photos/organize/>`_ to make sure the photos are neatly organized like they were in your photos directory.
+
+
+Step 4. Re-running the script
+-------------------
 
 To back up the same folder to the same Flickr account, simply run::
 
 	python uploadr.py --dir=[photos directory]
 
-And the upload should start immediately. You won't have to re-enter you API key and secret since the app saves them in the photo directory. The app also saves a history of all previously uploaded photos and unless you move stuff around or rename your files or directories, it will avoid uploading duplicate photos or creating duplicate sets and collections.
+And the upload should start immediately. You won't have to re-enter you API key and secret since the app saves them in your photos directory. The app also saves a history of all previously uploaded photos and unless you move stuff around or rename your files or directories, it will avoid uploading duplicate photos or creating duplicate sets and collections.
+
+
+Step 5. Automate the script
+-------------------
+
+The best part about a command-line script like this is that you can easily automate it using the Mac Automator by following `this <http://arstechnica.com/apple/2011/03/howto-build-mac-os-x-services-with-automator-and-shell-scripting/>`_ or `this <http://lifehacker.com/5668648/automate-just-about-anything-on-your-mac-no-coding-required>`_ tutorial.
 
 
 Advanced
 ===================
 
-Script
--------------------
-
-
-TODO
+The script works with relative paths, so if you move your photos directory to a different location or even if you upload it from a different computer, it will still work. Those relative paths are stored in the descriptions of the photos, sets, and collections in your Flickr account, so please avoid changing them. The script also never deletes uploaded photos.
 
 
 Files
 -------------------
 
-You will notice that the script will create a bunch of files with the prefix ```uploadr.*`  in your photos directory. Some of them will be hidden, namely::
+You will notice that the script creates a bunch of files with the prefix ``uploadr.*``  in your photos directory. Some of them will be hidden, namely::
 
 	.uploadr.flickrToken
 	.uploadr.apiKey
@@ -92,37 +111,26 @@ Finally, the script creates a log of failed uploads and ignored files::
 This is for debugging purposes and to make sure none of your important files were ignored or failed to upload for some reason.
 
 
-What it does
+Future work
 -----------------
 
+The script is far from perfect and there is plenty of room for improvement. Feel free to fork, change, improve, distribute as you see fit!
 
+1. ``--dry-run`` option
 
+Have the option to run the script without actually uploading or changing anything, just to see what will happen (which files will be uploaded, how many of them, etc)
+
+2. Pause/resume script
+
+Currently you can interrupt the script with ``Cmd+C`` and restart it. It would be nice if you could only pause it.
+
+3. Subcollections
+
+Currently the Flickr collections API is unofficial and I could not figure out how to create a collection within a collection. So if you have lots of nested directories, e.g. ``/path/to/some/album/``, the script will create collections ``/path``, ``/path/to``, and ``/path/to/some``, and a set ``album`` nested into the last collection. Ideally, once Flickr releases their collections API, we would instead like to create a collection ``path`` and inside it a collection ``to`` and inside it a collection ``set`` and finally inside it a set ``album``.
 
 
 License
 -------
 
 Uploadr.py consists of code by Cameron Mallory, Martin Kleppmann, Aaron Swartz and
-others. See ``COPYRIGHT`` for details.
-
-
-Running Momchil's Version
---------------------
-
-So I changed the code a bit to allow for collections and sets. Currently the script works like this:
-
-1. You open uploadr.py and change IMAGE_DIR to wherever all your precious photos are
-
-2. You run ``python uploadr.py``
-
-3. The script will crawl the folder and all subfolders and upload all the images to your Flickr account
-
-4. It will also order the images into sets and collections according to the directory structure, as follows:
-
-The image with relative path ``Path/To/Some/Album/image.jpg`` will go into a photo set with the name ``Album`` (i.e. the name of the parent directory of the image) which in turn will go into a collection with the name ``Path/To/Some`` (i.e. the relative path of the parent directory of the image). Ideally, when some day Flickr releases their collections API, we will be able to create a collection ``Path`` and inside it a subcollection ``To`` and then a subsubcollection ``Some`` and then inside it a set ``Album`` and put the image there. For now though, I couldn't figure out how to do it, since the collections API is private.
-
-5. The script avoids duplicate uploads based on the relative path of the images.
-
-So in theory it is safe to interrupt it and run it again. Before it starts uploading anything, it scans all uploaded photos from your Flickr account and checks their relative paths (which are stored in the photo description -- please don't change that) to make sure it doesn't reupload them. Note that if you move stuff around in your photo directory or if you change the description attributes of images, sets, or collections in your Flickr account, the script may produce duplicate uploads. Also note that since all paths are relative, if you move your pictures folder somewhere else, everything should still work fine.
-
-Also the code needs some cleaning up and I think I broke some of the originally available functionality, sorry about that. But the basic stuff seems to work. Please feel free to suggest improvements, or just fork and work on it yourself!
+others. See ``COPYRIGHT`` for details. Latest modifications (integration with the sets and collections API) by Momchil Tomov.

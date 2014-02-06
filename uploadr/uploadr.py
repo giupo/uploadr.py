@@ -185,8 +185,8 @@ class Uploadr:
     failed_sets = dict()
     failed_collections = dict()
     failed_images_count = 0
-    skipped_sets = dict()
-    skipped_collections = dict()
+    skipped_sets = 0
+    skipped_collections = 0
     skipped_images_count = 0
     ignored_files_count = 0
     total_files = 0
@@ -487,19 +487,18 @@ class Uploadr:
                 #  add it to collection
                 if collection_name:
                     # create collection, optionally
-                    if not str2key(relpath) in self.created_collections:
+                    if not str2key(collection_path) in self.created_collections:
                         collection_id = self.createCollection(collection_name, collection_path)
                     else:
-                        collection_id = self.created_collections[str2key(relpath)]
-                        self.skipped_collections[str2key(relpath)] = 1
+                        collection_id = self.created_collections[str2key(collection_path)]
                     self.addSetToCollection(set_id, collection_id)
-            else:
-                self.skipped_sets[str2key(set_path)] = 1
         return self.created_sets[str2key(set_path)]
 
     def crawl( self ):
         self.failed_uploads.write('\n' + self.session_info + '\n')
         self.ignored_files.write('\n' + self.session_info + '\n')
+        self.skipped_sets = len(self.created_sets)
+        self.skipped_collections = len(self.created_collections)
 
         foo = os.walk(self.image_dir)
         for data in foo:
@@ -535,10 +534,10 @@ class Uploadr:
             + str(self.failed_images_count) + " uploads failed, " \
             + str(self.ignored_files_count) + " files were ignored)" 
         print "Created " + str(self.new_sets_count) + " sets (" \
-            + str(len(self.skipped_sets)) + " sets were already created, " \
+            + str(self.skipped_sets) + " sets were already created, " \
             + str(len(self.failed_sets)) + " sets failed)"
         print "Created " + str(self.new_collections_count) + " collections (" \
-            + str(len(self.skipped_collections)) + " collections were already created, " \
+            + str(self.skipped_collections) + " collections were already created, " \
             + str(len(self.failed_collections)) + " collections failed)"
         print ""
 
