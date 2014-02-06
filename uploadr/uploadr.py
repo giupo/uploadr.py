@@ -23,6 +23,9 @@
    cron entry (runs at the top of every hour )
    0  *  *   *   * /full/path/to/uploadr.py > /dev/null 2>&1
 
+   Februrary 2014
+   Momchil Tomov     about.me/tomov
+
    September 2005
    Cameron Mallory   cmallory/berserk.org
 

@@ -8,7 +8,7 @@ The script is superior to other Flickr uploaders in several ways:
 
 1. It preserves the layout of your photos directory by organizing the uploads into sets and collections, instead of just putting everything into one giant photo stream.
 
-2. It can be safely interrupted and restarted and it will avoid making duplicate uploads.
+2. It can be safely interrupted and restarted and will avoid making duplicate uploads.
 
 3. It can be automated to regularly back up your photos directory.
 
@@ -48,14 +48,14 @@ Make sure to have your Flickr API key and secret (if you don't, you can get them
 
 	python uploadr.py --dir=[photos directory] --api-key=[your api key] --api-secret=[your api secret]
 
-Here is what this would look like for an example directory and api key and secret::
+Here is what this would look like for an example directory, API key and secret::
 
 	python uploadr.py --dir="/Users/tomov90/Downloads/My Photos/" --api-key=00954e229265b619362cb462da234100 --api-secret=4cf2baa933309b8e
 
 You will be forwarded to a Flickr confirmation page in your browser. Click ``OK, I'LL AUTHORIZE I`` at the bottom, go back to the terminal and type ``Y``. You will get another prompt asking you if you are sure you want to continue. Type ``Y`` again and let python do the rest of the work!
 
 
-Step 3. Check everything is fine
+Step 3. Check if everything is fine
 -------------------
 
 Once the script has finished, go to your Flickr account photo stream and make sure everything is there. Check the photo count at the top of the photo stream and make sure it looks right. I also recommend checking the sets and collections in the `organizer <http://www.flickr.com/photos/organize/>`_ to make sure the photos are neatly organized like they were in your photos directory.
@@ -84,7 +84,7 @@ This will open the crontab file. Simply add the line::
 
 Which will run the script in the background every hour. For example, for me the line would be::
 
-	0  *  *  *  * /Users/tomov90/Dev/uploadr.py/uploadr/uploadr.py --dir="/Users/tomov90/Downloads/My Photos/"
+	0  *  *  *  * /Users/tomov90/Dev/uploadr.py/uploadr/uploadr.py --dir="/Users/tomov90/Downloads/My Photos/" > /dev/null 2>&1
 
 Alternatively, you can use the Mac Automator by following `this <http://arstechnica.com/apple/2011/03/howto-build-mac-os-x-services-with-automator-and-shell-scripting/>`_ or `this <http://lifehacker.com/5668648/automate-just-about-anything-on-your-mac-no-coding-required>`_ tutorial.
 
@@ -125,11 +125,11 @@ This is for debugging purposes and to make sure none of your important files wer
 Future work
 -----------------
 
-The script is far from perfect and there is plenty of room for improvement. Feel free to fork, change, improve, distribute as you see fit!
+The script is far from perfect and there is plenty of room for improvement. Feel free to fork, change, improve, and distribute as you see fit! Some suggestions for improvements:
 
 1. ``--dry-run`` option
 
-Have the option to run the script without actually uploading or changing anything, just to see what will happen (which files will be uploaded, how many of them, etc)
+It would be great to have the option to run the script without actually uploading or changing anything, just to see what will happen (which files will be uploaded, how many of them, etc)
 
 2. Pause/resume script
 
@@ -137,7 +137,7 @@ Currently you can interrupt the script with ``Cmd+C`` and restart it. It would b
 
 3. Subcollections
 
-Currently the Flickr collections API is unofficial and I could not figure out how to create a collection within a collection. So if you have lots of nested directories, e.g. ``/path/to/some/album/``, the script will create collections ``/path``, ``/path/to``, and ``/path/to/some``, and a set ``album`` nested into the last collection. Ideally, once Flickr releases their collections API, we would instead like to create a collection ``path`` and inside it a collection ``to`` and inside it a collection ``set`` and finally inside it a set ``album``.
+Currently the Flickr collections API is unofficial and I could not figure out how to create a collection within a collection. So if you have lots of nested directories, e.g. ``/path/to/some/album/``, the script will create collections ``/path``, ``/path/to``, and ``/path/to/some``, and a set ``album`` nested inside the last collection. Ideally, once Flickr releases their collections API, we would like instead to create a collection ``path`` and inside it a collection ``to`` and inside it a collection ``some`` and finally inside it a set ``album``.
 
 
 License
