@@ -44,7 +44,7 @@ Here is how this would look for an example directory and api key and secret::
 
 	python uploadr.py --dir="/Users/tomov90/Downloads/My Photos/" --api-key=00954e229265b619362cb462da234100 --api-secret=4cf2baa933309b8e
 
-
+You will be forwarded to a Flickr confirmation page in your browser. Click ``OK, I'LL AUTHORIZE I`` at the bottom, go back to the terminal and type ``Y``
 
 When you have got those keys, you need to set environment variables so that they
 can be used by this application. For example, if you use Bash, add the following
