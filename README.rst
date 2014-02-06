@@ -4,10 +4,9 @@ Uploadr.py
 Uploadr.py is a simple Python script for uploading your photos to Flickr. It also arranges them into 
 sets and collections that correspond to the directory structure of your photos directory.
 
-The script is superior to other Flickr uploaders in several important ways.
+The script is superior to other Flickr uploaders in several ways:
 
-1. It preserves the layout of your photos directory by organizing the uploads into sets and collections, 
-instead of just putting everything into one giant photo stream.
+1. It preserves the layout of your photos directory by organizing the uploads into sets and collections, instead of just putting everything into one giant photo stream.
 
 2. It can be safely interrupted and restarted and it will avoid making duplicate uploads.
 
@@ -75,13 +74,25 @@ And the upload should start immediately. You won't have to re-enter you API key 
 Step 5. Automate the script
 -------------------
 
-The best part about a command-line script like this is that you can easily automate it using the Mac Automator by following `this <http://arstechnica.com/apple/2011/03/howto-build-mac-os-x-services-with-automator-and-shell-scripting/>`_ or `this <http://lifehacker.com/5668648/automate-just-about-anything-on-your-mac-no-coding-required>`_ tutorial.
+The best part about a command-line script like this is that you can easily automate it. You can do this by creating a cron job through the command line::
+
+	crontab -e
+
+This will open the crontab file. Simply add the line::
+
+	0  *  *  *  *  /full/path/to/uploadr.py/uploadr/uploadr.py --dir=[photos directory] > /dev/null 2>&1
+
+Which will run the script in the background every hour. For example, for me the line would be::
+
+	0  *  *  *  * /Users/tomov90/Dev/uploadr.py/uploadr/uploadr.py --dir="/Users/tomov90/Downloads/My Photos/"
+
+Alternatively, you can use the Mac Automator by following `this <http://arstechnica.com/apple/2011/03/howto-build-mac-os-x-services-with-automator-and-shell-scripting/>`_ or `this <http://lifehacker.com/5668648/automate-just-about-anything-on-your-mac-no-coding-required>`_ tutorial.
 
 
 Advanced
 ===================
 
-The script works with relative paths, so if you move your photos directory to a different location or even if you upload it from a different computer, it will still work. Those relative paths are stored in the descriptions of the photos, sets, and collections in your Flickr account, so please avoid changing them. The script also never deletes uploaded photos.
+The script works with relative paths, so if you move your photos directory to a different location or even if you upload it from a different computer, it should still work. Those relative paths are stored in the descriptions of the photos, sets, and collections in your Flickr account, so please avoid changing them. The script also never deletes uploaded photos.
 
 
 Files
@@ -130,7 +141,7 @@ Currently the Flickr collections API is unofficial and I could not figure out ho
 
 
 License
--------
+==============
 
 Uploadr.py consists of code by Cameron Mallory, Martin Kleppmann, Aaron Swartz and
 others. See ``COPYRIGHT`` for details. Latest modifications (integration with the sets and collections API) by Momchil Tomov.
