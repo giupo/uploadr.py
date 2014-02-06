@@ -985,8 +985,8 @@ class Uploadr:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Upload directories to Flickr.')
     parser.add_argument('--dir', action='store', help='Directory with photos to upload')
-    parser.add_argument('--api_key', action='store', help="Your Flickr account API key")
-    parser.add_argument('--api_secret', action='store',  help="Your Flickr account API secret")
+    parser.add_argument('--api-key', action='store', help="Your Flickr account API key")
+    parser.add_argument('--api-secret', action='store',  help="Your Flickr account API secret")
     args = parser.parse_args()
 
     flick = Uploadr(args)
