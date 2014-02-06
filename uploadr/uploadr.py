@@ -57,7 +57,7 @@ IMAGE_EXTS = ['jpeg', 'jpg', 'png', 'gif', 'bmp']
 FLICKR = {"title": "",
         "description": "",
         "tags": "auto-upload",
-        "is_public": "0",
+        "is_public": "0",         # DO NOT CHANGE THIS -- OTHERWISE YOUR PHOTOS MIGHT BE EXPOSED FOR THE ENTIRE WORLD TO SEE
         "is_friend": "0",
         "is_family": "0" }
 

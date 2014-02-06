@@ -1,3 +1,7 @@
+remove old comments form file
+remove todo.txt -- make sure everything's fine in github files
+
+
 
 local cache of uploaded files (refresh from flickr if absent)
 local list of failed uploads
@@ -14,6 +18,7 @@ Uploading [rel path to file]
     in set [set name]
     in collection [collection name]
     ------> Success.
+
 
 Creating set [set name]
     in collection [collection name]

@@ -1,13 +1,27 @@
 Uploadr.py
 ==========
 
-Uploadr.py is a simple Python script for uploading your photos to Flickr. Unlike
-many GUI applications out there, it lends itself to automation; and because it's
-free and open source, you can just change it if you don't like it.
+Uploadr.py is a simple Python script for uploading your photos to Flickr. It also arranges them into 
+sets and collections that correspond to the directory structure of your photos directory.
 
 
-Authentication
+Instructions
+==========
+
+The script in its current version is only tested on Mac OS X so all instructions will be targeted to Mac users.
+
+
+Step 0. Prerequisites
 --------------
+
+1. Python
+
+Mac OS X 10.8 comes with Python preinstalled. To make sure, open a terminal and type ``python -V``
+
+2. Git
+
+To see if you have Git installed, open a terminal and type ‘git --version’. If you don’t, get the latest version from `here <https://code.google.com/p/git-osx-installer/downloads/list>`.
+
 
 To use this application, you need to obtain your own Flickr API key and secret
 key. You can apply for keys `on the Flickr website
