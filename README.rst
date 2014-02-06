@@ -8,7 +8,7 @@ sets and collections that correspond to the directory structure of your photos d
 Instructions
 ==========
 
-The script in its current version is only tested on Mac OS X so all instructions will be targeted to Mac users.
+The script in its current version is only tested on Mac OS X so all instructions are targeted to Mac users.
 
 
 Step 0. Prerequisites
@@ -16,7 +16,7 @@ Step 0. Prerequisites
 
 1. Python
 
-Mac OS X 10.8 comes with Python preinstalled. To verfiy that, open a terminal and type ``python -V``.
+Mac OS X 10.8 comes with Python preinstalled. To verfiy that, open a terminal and type ``python -V``. If you don't have it, get it from `here <http://www.python.org/getit/>`_.
 
 2. Git
 
