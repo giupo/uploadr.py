@@ -16,11 +16,11 @@ Step 0. Prerequisites
 
 1. Python
 
-Mac OS X 10.8 comes with Python preinstalled. To make sure, open a terminal and type ``python -V``
+Mac OS X 10.8 comes with Python preinstalled. To verfiy that, open a terminal and type ``python -V``.
 
 2. Git
 
-To see if you have Git installed, open a terminal and type ‘git --version’. If you don’t, get the latest version from `here <https://code.google.com/p/git-osx-installer/downloads/list>`.
+To see if you have Git installed, open a terminal and type ‘git --version’. If you don’t, get the latest version from `here <https://code.google.com/p/git-osx-installer/downloads/list>`_.
 
 
 To use this application, you need to obtain your own Flickr API key and secret
