@@ -169,6 +169,7 @@ class Uploadr:
     api_secret_file = None
     username = None
     realname = None
+    nsid = None
 
     # Logs
     created_sets = None   # shelve dict, relative path -> id
@@ -446,8 +447,10 @@ class Uploadr:
     """
 
     def prompt(self):
-        print "This script will examine all files and directories in '" + self.image_dir + "' and upload them into Flicker account " + \
-            self.username + " (" + self.realname + ")."
+        print "\n---------------------------------------------------------------------------\n"
+        print "    This script will examine all files and directories in: " + self.image_dir + ""
+        print "    and upload them into Flickr account: " + self.username + " (" + self.realname + ")"
+        print "\n---------------------------------------------------------------------------\n"
         return query_yes_no("Are you sure you want to continue?")
 
     def getHistory( self ):
@@ -525,7 +528,7 @@ class Uploadr:
                 sys.stdout.flush()
 
     def printStats( self ):
-        print "Crawling finished!"
+        print "\nCrawling finished!"
         print "Examined " + str(self.total_files) + " files and " + str(self.total_dirs) + " directories"
         print "Uploaded " + str(self.new_images_count) + " images (" \
             + str(self.skipped_images_count) + " images were already uploaded, " \
@@ -537,29 +540,28 @@ class Uploadr:
         print "Created " + str(self.new_collections_count) + " collections (" \
             + str(len(self.skipped_collections)) + " collections were already created, " \
             + str(len(self.failed_collections)) + " collections failed)"
+        print ""
 
 
     """     API calls
     """
 
     def getInfo( self ):
+        # get user NSID
         try:
             d = {
                 api.token          : str(self.token),
                 api.perms          : str(self.perms),
-                "method"           : "flickr.people.getInfo",
+                "method"           : "flickr.urls.getUserProfile",
             }
             sig = self.signCall( d )
             d[ api.sig ] = sig
             d[ api.key ] = FLICKR[ api.key ]
             url = self.build_request(api.rest, d, ())
             xml = urllib2.urlopen( url ).read()
-            print xml
             res = xmltramp.parse(xml)
             if ( self.isGood( res ) ):
-                self.username =  ...
-                self.realname = ...
-                print res
+                self.nsid = str(res[0]('nsid'));
             else :
                 self.reportError( res )
                 raise
@@ -567,6 +569,30 @@ class Uploadr:
             print(str(sys.exc_info()))
             sys.exit()
         
+        # get username and real name
+        try:
+            d = {
+                api.token          : str(self.token),
+                api.perms          : str(self.perms),
+                "method"           : "flickr.people.getInfo",
+                "user_id"          : self.nsid
+            }
+            sig = self.signCall( d )
+            d[ api.sig ] = sig
+            d[ api.key ] = FLICKR[ api.key ]
+            url = self.build_request(api.rest, d, ())
+            xml = urllib2.urlopen( url ).read()
+            res = xmltramp.parse(xml)
+            if ( self.isGood( res ) ):
+                self.username = res[0][0][0]
+                self.realname = res[0][1][0]
+            else :
+                self.reportError( res )
+                raise
+        except:
+            print(str(sys.exc_info()))
+            sys.exit()
+
 
     def getCreatedSets( self ):
         self.created_sets_file = os.path.join(self.image_dir, CREATED_SETS_FILENAME)
@@ -729,6 +755,10 @@ class Uploadr:
                 self.reportError( res )
                 self.failed_uploads.write('Set: ' + relpath + '\n')
                 self.failed_sets[str2key(relpath)] = 1
+        except KeyboardInterrupt:
+            flick.printStats()
+            print "\nUploading session interrupted by user..."
+            sys.exit()
         except:
             print(str(sys.exc_info()))
             self.failed_uploads.write('Set: ' + relpath + '\n')
@@ -759,6 +789,10 @@ class Uploadr:
             else :
                 print("    Problem:")
                 self.reportError( res )
+        except KeyboardInterrupt:
+            flick.printStats()
+            print "\nUploading session interrupted by user..."
+            sys.exit()
         except:
             print(str(sys.exc_info()))
         return success
@@ -790,6 +824,10 @@ class Uploadr:
                 self.failed_uploads.write("Collection: " + relpath + "\n")
                 self.reportError( res )
                 self.failed_collections[str2key(relpath)] = 1
+        except KeyboardInterrupt:
+            flick.printStats()
+            print "\nUploading session interrupted by user..."
+            sys.exit()
         except:
             print(str(sys.exc_info()))
             self.failed_uploads.write("Collection: " + relpath + "\n")
@@ -819,6 +857,10 @@ class Uploadr:
             else :
                 print("    Problem:")
                 self.reportError( res )
+        except KeyboardInterrupt:
+            flick.printStats()
+            print "\nUploading session interrupted by user..."
+            sys.exit()
         except:
             print(str(sys.exc_info()))
         return success
@@ -854,6 +896,10 @@ class Uploadr:
                 self.reportError( res )
                 self.failed_uploads.write('Image: ' + relpath + '\n')
                 self.failed_images_count += 1
+        except KeyboardInterrupt:
+            flick.printStats()
+            print "\nUploading session interrupted by user..."
+            sys.exit()
         except:
             print(str(sys.exc_info()))
             self.failed_uploads.write('Image: ' + relpath + '\n')
@@ -951,4 +997,4 @@ if __name__ == "__main__":
         flick.printStats()
         flick.closeHistoryFiles()
     else:
-        print "Exiting..."
+        print "\nExiting..."
