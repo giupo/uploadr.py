@@ -210,9 +210,9 @@ class Uploadr:
             self.image_dir += '/'
 
         # get api key
-        self.api_key_file = os.path.join(self.image_dir, API_KEY_FILENAME)
-        if args.api_key:
-            FLICKR[ api.key ] = args.api_key
+        self.api-key_file = os.path.join(self.image_dir, API_KEY_FILENAME)
+        if args.api-key:
+            FLICKR[ api.key ] = args.api-key
         else:
             FLICKR[ api.key ] = self.getCachedAPIKey()
         if not FLICKR[ api.key ]:
@@ -221,8 +221,8 @@ class Uploadr:
 
         # get api secret
         self.api_secret_file = os.path.join(self.image_dir, API_SECRET_FILENAME)
-        if args.api_secret:
-            FLICKR[ api.secret ] = args.api_secret
+        if args.api-secret:
+            FLICKR[ api.secret ] = args.api-secret
         else:
             FLICKR[ api.secret ] = self.getCachedAPISecret()
         if not FLICKR[ api.secret ]:
@@ -989,10 +989,11 @@ if __name__ == "__main__":
     parser.add_argument('--dir', action='store', help='Directory with photos to upload')
     parser.add_argument('--api-key', action='store', help="Your Flickr account API key")
     parser.add_argument('--api-secret', action='store',  help="Your Flickr account API secret")
+    parser.add_argument('--no-prompt', action='store_true', help="Avoid prompt. Useful for automation.")
     args = parser.parse_args()
 
     flick = Uploadr(args)
-    if flick.prompt():
+    if args.no-prompt or flick.prompt():
         print '\n' + flick.session_info
         flick.getHistory()
         flick.crawl()

@@ -80,11 +80,11 @@ The best part about a command-line script like this is that you can easily autom
 
 This will open the crontab file. Simply add the line::
 
-	0  *  *  *  *  /full/path/to/uploadr.py/uploadr/uploadr.py --dir=[photos directory] > /dev/null 2>&1
+	0  *  *  *  *  /full/path/to/uploadr.py/uploadr/uploadr.py --dir=[photos directory] --no-prompt > /dev/null 2>&1
 
 Which will run the script in the background every hour. For example, for me the line would be::
 
-	0  *  *  *  * /Users/tomov90/Dev/uploadr.py/uploadr/uploadr.py --dir="/Users/tomov90/Downloads/My Photos/" > /dev/null 2>&1
+	0  *  *  *  * /Users/tomov90/Dev/uploadr.py/uploadr/uploadr.py --dir="/Users/tomov90/Downloads/My Photos/" --no-prompt > /dev/null 2>&1
 
 Alternatively, you can use the Mac Automator by following `this <http://arstechnica.com/apple/2011/03/howto-build-mac-os-x-services-with-automator-and-shell-scripting/>`_ or `this <http://lifehacker.com/5668648/automate-just-about-anything-on-your-mac-no-coding-required>`_ tutorial.
 
