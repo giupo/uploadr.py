@@ -25,7 +25,7 @@ To see if you have Git installed, open a terminal and type ``git --version``. If
 Step 1. Download the script
 ---------------
 
-Go to your favorite hacking directory and clone the repo:
+Go to your favorite hacking directory and clone the repo::
 
 	git clone https://github.com/tomov/uploadr.py
 
@@ -34,11 +34,11 @@ Go to your favorite hacking directory and clone the repo:
 Step 2. Run the script
 ---------------
 
-Make sure to have your Flickr API key and secret (if you don't, you can get them `here <http://www.flickr.com/services/api/keys/apply/>`_). Then run the script:
+Make sure to have your Flickr API key and secret (if you don't, you can get them `here <http://www.flickr.com/services/api/keys/apply/>`_). Then run the script::
 
 	python uploadr.py --dir=[phots directory] --api-key=[your api key] --api-secret=[your api secret]
 
-Here is how this would look for an example directory and api key and secret:
+Here is how this would look for an example directory and api key and secret::
 
 	python uploadr.py --dir="/Users/tomov90/Downloads/My Photos/" --api-key=00954e229265b619362cb462da234100 --api-secret=4cf2baa933309b8e
 
