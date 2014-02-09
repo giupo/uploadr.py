@@ -35,7 +35,7 @@ Step 1. Download the script
 
 Go to your favorite hacking directory and clone the repo::
 
-	git clone https://github.com/tomov/uploadr.py
+	git clone https://github.com/tomov/uploadr.py.git
 
 Then go to the script directory::
 
@@ -52,13 +52,13 @@ Here is what this would look like for an example directory, API key and secret::
 
 	python uploadr.py --dir="/Users/tomov90/Downloads/My Photos/" --api-key=00954e229265b619362cb462da234100 --api-secret=4cf2baa933309b8e
 
-You will be forwarded to a Flickr confirmation page in your browser. Click ``OK, I'LL AUTHORIZE I`` at the bottom, go back to the terminal and type ``Y``. You will get another prompt asking you if you are sure you want to continue. Type ``Y`` again and let python do the rest of the work!
+You will be forwarded to a Flickr confirmation page in your browser. Click ``OK, I'LL AUTHORIZE IT`` at the bottom, go back to the terminal and type ``Y``. You will get another prompt asking you if you are sure you want to continue. Type ``Y`` again and let python do the rest of the work!
 
 
 Step 3. Check if everything is fine
 -------------------
 
-Once the script has finished, go to your Flickr account photo stream and make sure everything is there. Check the photo count at the top of the photo stream and make sure it looks right. I also recommend checking the sets and collections in the `organizer <http://www.flickr.com/photos/organize/>`_ to make sure the photos are neatly organized like they were in your photos directory.
+Even as the script is running, you can watch photos being added if you go to your Flickr account photo stream. Once the script has finished, go there to make sure everything has been successfully uploaded. Check the photo count at the top of the photo stream and make sure it looks right. I also recommend checking the sets and collections in the `organizer <http://www.flickr.com/photos/organize/>`_ to make sure the photos are neatly organized like they were in your photos directory.
 
 
 Step 4. Re-running the script
@@ -66,9 +66,9 @@ Step 4. Re-running the script
 
 To back up the same folder to the same Flickr account, simply run::
 
-	python uploadr.py --dir=[photos directory]
+	python uploadr.py --dir=[photos directory] --no-prompt
 
-And the upload should start immediately. You won't have to re-enter you API key and secret since the app saves them in your photos directory. The app also saves a history of all previously uploaded photos and unless you move stuff around or rename your files or directories, it will avoid uploading duplicate photos or creating duplicate sets and collections.
+And the upload should start immediately. You won't have to re-enter your API key and secret since the app saves them in your photos directory. The app also saves a history of all previously uploaded photos and unless you move stuff around or rename your files or directories, it will avoid uploading duplicate photos or creating duplicate sets and collections.
 
 
 Step 5. Automate the script
@@ -119,7 +119,7 @@ Finally, the script creates a log of failed uploads and ignored files::
 	uploadr.failed_uploads.log
 	uploadr.ignored_files.log
 
-This is for debugging purposes and to make sure none of your important files were ignored or failed to upload for some reason.
+This is for debugging purposes and to make sure none of your important files were ignored or failed to upload for some reason. Feel free to remove them.
 
 
 Future work
@@ -127,17 +127,25 @@ Future work
 
 The script is far from perfect and there is plenty of room for improvement. Feel free to fork, change, improve, and distribute as you see fit! Some suggestions for improvements:
 
-1. ``--dry-run`` option
+1. Windows and Linux compatibility
+
+It would be awesome if someone tried to see if this works on other platforms. It will surely need some help to get it going under Windows since I've hardcoded a bunch of forward slashes here and there (sorry about that).
+
+2. ``--dry-run`` option
 
 It would be great to have the option to run the script without actually uploading or changing anything, just to see what will happen (which files will be uploaded, how many of them, etc)
 
-2. Pause/resume script
+3. Pause/resume script
 
 Currently you can interrupt the script with ``Cmd+C`` and restart it. It would be nice if you could only pause it.
 
-3. Subcollections
+4. Subcollections
 
 Currently the Flickr collections API is unofficial and I could not figure out how to create a collection within a collection. So if you have lots of nested directories, e.g. ``/path/to/some/album/``, the script will create collections ``/path``, ``/path/to``, and ``/path/to/some``, and a set ``album`` nested inside the last collection. Ideally, once Flickr releases their collections API, we would like instead to create a collection ``path`` and inside it a collection ``to`` and inside it a collection ``some`` and finally inside it a set ``album``.
+
+5. Intelligent deduplication
+
+This is kind of advanced, but it would be awesome if the script can detect if you renamed a file or a directory and instead of reuploading the whole thing over again, it would simply rename the corresponding images, sets or collections in the Flickr account. This might require some sort of hashing but would make the script a lot more robust.
 
 
 License

@@ -15,10 +15,10 @@
 
    Usage:
 
+   Pass the directory and the API key and secret as command line parameters.
+
    The best way to use this is to just fire this up in the background and forget about it.
    If you find you have CPU/Process limits, then setup a cron job.
-
-   %nohup python uploadr.py -d &
 
    cron entry (runs at the top of every hour )
    0  *  *   *   * /full/path/to/uploadr.py > /dev/null 2>&1
@@ -32,7 +32,6 @@
    This code has been updated to use the new Auth API from flickr.
 
    You may use this code however you see fit in any form whatsoever.
-
 
 """
 
@@ -210,9 +209,9 @@ class Uploadr:
             self.image_dir += '/'
 
         # get api key
-        self.api-key_file = os.path.join(self.image_dir, API_KEY_FILENAME)
-        if args.api-key:
-            FLICKR[ api.key ] = args.api-key
+        self.api_key_file = os.path.join(self.image_dir, API_KEY_FILENAME)
+        if args.api_key:
+            FLICKR[ api.key ] = args.api_key
         else:
             FLICKR[ api.key ] = self.getCachedAPIKey()
         if not FLICKR[ api.key ]:
@@ -221,8 +220,8 @@ class Uploadr:
 
         # get api secret
         self.api_secret_file = os.path.join(self.image_dir, API_SECRET_FILENAME)
-        if args.api-secret:
-            FLICKR[ api.secret ] = args.api-secret
+        if args.api_secret:
+            FLICKR[ api.secret ] = args.api_secret
         else:
             FLICKR[ api.secret ] = self.getCachedAPISecret()
         if not FLICKR[ api.secret ]:
@@ -993,7 +992,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     flick = Uploadr(args)
-    if args.no-prompt or flick.prompt():
+    if args.no_prompt or flick.prompt():
         print '\n' + flick.session_info
         flick.getHistory()
         flick.crawl()
