@@ -24,7 +24,7 @@ Step 0. Prerequisites
 
 1. Python
 
-Mac OS X 10.8 comes with Python preinstalled. To verfiy that, open a terminal and type ``python -V``. If you don't have it, get it from `here <http://www.python.org/getit/>`_.
+Mac OS X 10.8 comes with Python preinstalled. To verfiy that, open a terminal and type ``python -V``. If you don't have it, get it from `here <http://www.python.org/getit/>`_. You need Python 2.7 (Python 3 won't work).
 
 2. Git
 

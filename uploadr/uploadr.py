@@ -93,7 +93,7 @@ class APIConstants:
     """ APIConstants class
     """
 
-    base = "http://flickr.com/services/"
+    base = "https://api.flickr.com/services/"
     rest     = base + "rest/"
     auth     = base + "auth/"
     upload   = base + "upload/"
